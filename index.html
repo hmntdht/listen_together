@@ -1,665 +1,698 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SyncWave — Listen Together</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SyncWave</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#080a0f; --bg3:#141720;
-    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
-    --text:#f0f2f8; --muted:#6b7280;
-    --accent:#6ee7b7; --accent2:#34d399; --accent3:#059669;
-    --host:#fbbf24; --danger:#f87171;
-    --radius:14px; --radius-sm:8px;
-  }
-  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.6; min-height:100vh; overflow-x:hidden; }
-  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; }
-  .orb { position:fixed; border-radius:50%; filter:blur(120px); pointer-events:none; z-index:0; opacity:0.18; }
-  .orb-1 { width:600px; height:600px; background:#059669; top:-200px; right:-150px; }
-  .orb-2 { width:400px; height:400px; background:#0891b2; bottom:-100px; left:-100px; }
-  .page { display:none; min-height:100vh; position:relative; z-index:1; }
-  .page.active { display:flex; }
-  .glass-heavy { background:rgba(255,255,255,0.05); border:1px solid var(--border2); backdrop-filter:blur(40px); border-radius:var(--radius); }
-  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; border-radius:var(--radius-sm); font-family:'Syne',sans-serif; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .2s; text-transform:uppercase; letter-spacing:.08em; }
-  .btn:active { transform:scale(0.97); }
-  .btn:disabled { opacity:0.45; cursor:not-allowed; transform:none !important; }
-  .btn-primary { background:var(--accent3); color:#fff; }
-  .btn-primary:hover:not(:disabled) { background:var(--accent2); box-shadow:0 0 30px rgba(52,211,153,.35); }
-  .btn-ghost { background:transparent; border:1px solid var(--border2); color:var(--text); }
-  .btn-ghost:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
-  .btn-danger { background:rgba(248,113,113,.15); border:1px solid rgba(248,113,113,.3); color:var(--danger); }
-  .btn-icon { width:42px; height:42px; padding:0; border-radius:50%; background:rgba(255,255,255,.06); border:1px solid var(--border2); color:var(--text); font-size:16px; cursor:pointer; transition:all .2s; }
-  .btn-icon:hover { background:rgba(255,255,255,.12); border-color:var(--accent); color:var(--accent); }
-  .input { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); padding:13px 16px; font-family:'DM Sans',sans-serif; font-size:15px; outline:none; transition:all .2s; }
-  .input:focus { border-color:var(--accent); background:rgba(110,231,183,.05); }
-  .input::placeholder { color:var(--muted); }
-  label { display:block; font-size:12px; font-family:'Syne',sans-serif; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:8px; }
-  .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:100px; font-size:12px; font-family:'Syne',sans-serif; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
-  .dot { width:6px; height:6px; border-radius:50%; }
-  .ok  { background:rgba(52,211,153,.12); color:var(--accent2); border:1px solid rgba(52,211,153,.2); }
-  .ok .dot { background:var(--accent2); animation:pulse 2s infinite; }
-  .warn { background:rgba(251,191,36,.1); color:var(--host); border:1px solid rgba(251,191,36,.2); }
-  .warn .dot { background:var(--host); }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
-
-  /* HOME */
-  #home-page { flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; text-align:center; }
-  .home-logo { font-family:'Syne',sans-serif; font-size:clamp(48px,8vw,80px); font-weight:800; line-height:1; background:linear-gradient(135deg,var(--text),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; letter-spacing:-.02em; }
-  .home-tagline { color:var(--muted); font-size:clamp(14px,2.5vw,17px); margin-bottom:52px; font-weight:300; }
-  .home-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; width:100%; max-width:700px; }
-  .home-card { flex:1; min-width:280px; max-width:320px; padding:36px 32px; border-radius:20px; text-align:left; transition:all .3s; }
-  .home-card:hover { transform:translateY(-4px); }
-  .card-icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:20px; }
-  .card-icon.host { background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.25); }
-  .card-icon.join  { background:rgba(110,231,183,.1);  border:1px solid rgba(110,231,183,.2); }
-  .card-label { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.15em; color:var(--muted); margin-bottom:6px; }
-  .card-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:10px; }
-  .card-desc  { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:24px; }
-  #err { margin-top:24px; padding:14px 18px; border-radius:var(--radius-sm); font-size:13px; display:none; max-width:500px; width:100%; background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.3); color:#fca5a5; }
-
-  /* ROOM */
-  #room-page { flex-direction:column; padding:0; }
-  .room-header { display:flex; align-items:center; justify-content:space-between; padding:18px 28px; border-bottom:1px solid var(--border); background:rgba(8,10,15,.85); backdrop-filter:blur(20px); position:sticky; top:0; z-index:10; flex-wrap:wrap; gap:12px; }
-  .room-header-left { display:flex; align-items:center; gap:16px; }
-  .room-brand { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; background:linear-gradient(135deg,var(--text),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .code-box { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 14px; }
-  .code-label { font-size:11px; color:var(--muted); font-family:'Syne',sans-serif; text-transform:uppercase; letter-spacing:.1em; }
-  .code-val { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:var(--accent); letter-spacing:.15em; }
-  .copy-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; transition:color .2s; }
-  .copy-btn:hover { color:var(--accent); }
-  .room-header-right { display:flex; align-items:center; gap:12px; }
-  .role-badge { padding:5px 14px; border-radius:100px; font-size:12px; font-family:'Syne',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.1em; }
-  .role-host     { background:rgba(251,191,36,.12); color:var(--host);   border:1px solid rgba(251,191,36,.25); }
-  .role-listener { background:rgba(110,231,183,.1);  color:var(--accent); border:1px solid rgba(110,231,183,.2); }
-  .room-body { display:flex; flex:1; overflow:hidden; height:calc(100vh - 70px); }
-
-  /* SIDEBAR */
-  .sidebar { width:280px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
-  .sb-section { padding:20px; border-bottom:1px solid var(--border); }
-  .sb-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
-  .uc { background:rgba(110,231,183,.1); color:var(--accent); padding:2px 8px; border-radius:100px; font-size:10px; }
-  .user-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
-  .user-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:var(--radius-sm); background:rgba(255,255,255,.02); }
-  .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; font-family:'Syne',sans-serif; flex-shrink:0; }
-  .av-host { background:rgba(251,191,36,.15); color:var(--host);   border:1px solid rgba(251,191,36,.3); }
-  .av-list { background:rgba(110,231,183,.1);  color:var(--accent); border:1px solid rgba(110,231,183,.2); }
-  .u-name { font-size:13px; font-weight:500; }
-  .u-role { font-size:10px; color:var(--muted); font-family:'Syne',sans-serif; text-transform:uppercase; }
-  .u-you  { font-size:10px; color:var(--accent); }
-  .tracklist { flex:1; overflow-y:auto; padding:16px; }
-  .tracklist::-webkit-scrollbar { width:4px; }
-  .tracklist::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-  .track-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius-sm); cursor:pointer; transition:all .2s; border:1px solid transparent; }
-  .track-item:hover { background:rgba(255,255,255,.04); }
-  .track-item.active { background:rgba(110,231,183,.06); border-color:rgba(110,231,183,.15); }
-  .t-num { width:20px; text-align:center; font-size:12px; color:var(--muted); }
-  .track-item.active .t-num { display:none; }
-  .t-wave { display:none; width:20px; align-items:center; gap:1.5px; height:14px; }
-  .track-item.active .t-wave { display:flex; }
-  .wb { width:2px; background:var(--accent); border-radius:1px; animation:wave .8s ease-in-out infinite; }
-  .wb:nth-child(2){animation-delay:.15s}.wb:nth-child(3){animation-delay:.3s}.wb:nth-child(4){animation-delay:.15s}
-  @keyframes wave{0%,100%{height:4px}50%{height:12px}}
-  .t-info { flex:1; min-width:0; }
-  .t-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .track-item.active .t-name { color:var(--accent); }
-  .t-size { font-size:11px; color:var(--muted); }
-  .no-tracks { text-align:center; padding:30px 20px; color:var(--muted); font-size:13px; line-height:1.7; }
-
-  /* PLAYER */
-  .player-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px; overflow-y:auto; }
-  .album-art { width:clamp(180px,30vw,260px); height:clamp(180px,30vw,260px); border-radius:20px; background:var(--bg3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:72px; margin-bottom:32px; position:relative; overflow:hidden; transition:all .5s; flex-shrink:0; }
-  .album-art.playing { box-shadow:0 0 60px rgba(52,211,153,.2),0 20px 60px rgba(0,0,0,.5); }
-  .art-bars { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; gap:3px; padding:20px; opacity:0; transition:opacity .3s; }
-  .album-art.playing .art-bars { opacity:.15; }
-  .ab { width:4px; background:var(--accent); border-radius:2px; animation:artwave 1s ease-in-out infinite; }
-  .ab:nth-child(2){animation-delay:.1s;height:40%}.ab:nth-child(3){animation-delay:.2s;height:70%}.ab:nth-child(4){animation-delay:.3s;height:50%}.ab:nth-child(5){animation-delay:.2s;height:80%}.ab:nth-child(6){animation-delay:.1s;height:60%}.ab:nth-child(7){animation-delay:.25s;height:45%}
-  @keyframes artwave{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
-  .track-meta { text-align:center; margin-bottom:28px; width:100%; max-width:420px; }
-  .track-title { font-family:'Syne',sans-serif; font-size:clamp(18px,3vw,24px); font-weight:700; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .track-sub { color:var(--muted); font-size:14px; }
-  .progress-wrap { width:100%; max-width:420px; margin-bottom:24px; }
-  .time-row { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-family:'Syne',sans-serif; margin-bottom:8px; }
-  .prog-track { width:100%; height:4px; background:rgba(255,255,255,.08); border-radius:2px; cursor:pointer; transition:height .15s; }
-  .prog-track:hover { height:6px; }
-  .prog-fill { height:100%; background:linear-gradient(90deg,var(--accent3),var(--accent)); border-radius:2px; width:0%; transition:width .25s linear; }
-  .controls { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
-  .play-btn { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--accent3),var(--accent2)); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; transition:all .2s; box-shadow:0 8px 30px rgba(52,211,153,.35); }
-  .play-btn:hover:not(:disabled) { transform:scale(1.06); box-shadow:0 12px 40px rgba(52,211,153,.5); }
-  .play-btn:disabled { opacity:.4; cursor:not-allowed; }
-  .vol-row { display:flex; align-items:center; gap:12px; width:100%; max-width:420px; }
-  .vol-icon { color:var(--muted); font-size:16px; }
-  .vol-slider { flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; outline:none; cursor:pointer; }
-  .vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; }
-  .upload-section { width:100%; max-width:420px; margin-top:28px; }
-  .upload-area { border:1.5px dashed var(--border2); border-radius:var(--radius); padding:24px; text-align:center; cursor:pointer; transition:all .2s; background:rgba(255,255,255,.02); }
-  .upload-area:hover,.upload-area.drag-over { border-color:var(--accent); background:rgba(110,231,183,.05); }
-  .upload-icon { font-size:28px; margin-bottom:8px; display:block; }
-  .upload-text { font-size:13px; color:var(--muted); }
-  .upload-text strong { color:var(--accent); }
-  #file-input { display:none; }
-  .sync-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:10px 20px; border-radius:100px; background:rgba(8,10,15,.9); border:1px solid var(--border); backdrop-filter:blur(20px); display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); transition:all .3s; opacity:0; pointer-events:none; white-space:nowrap; z-index:50; }
-  .sync-bar.show { opacity:1; }
-  .sdot { width:8px; height:8px; border-radius:50%; background:var(--accent2); animation:pulse 1.5s infinite; }
-  .sdot.warn { background:var(--host); }
-  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(20,23,32,.95); border:1px solid var(--border2); backdrop-filter:blur(20px); border-radius:var(--radius-sm); padding:12px 20px; font-size:13px; z-index:1000; opacity:0; pointer-events:none; transition:all .3s; white-space:nowrap; }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  .toast.success { border-color:rgba(52,211,153,.3); color:var(--accent); }
-  .toast.error   { border-color:rgba(248,113,113,.3); color:var(--danger); }
-  .tap-overlay { position:fixed; inset:0; z-index:200; background:rgba(8,10,15,.93); backdrop-filter:blur(24px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; transition:opacity .4s; }
-  .tap-overlay.hidden { display:none; }
-  .tap-pulse { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,var(--accent3),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:44px; cursor:pointer; animation:tapPulse 1.8s ease-in-out infinite; box-shadow:0 0 60px rgba(52,211,153,.4); border:none; }
-  @keyframes tapPulse { 0%,100%{transform:scale(1);box-shadow:0 0 60px rgba(52,211,153,.35)} 50%{transform:scale(1.09);box-shadow:0 0 100px rgba(52,211,153,.65)} }
-  .tap-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:700; }
-  .tap-sub { font-size:14px; color:var(--muted); text-align:center; max-width:260px; line-height:1.7; }
-  @media(max-width:768px){ .sidebar{display:none} .room-body{height:calc(100vh - 65px)} .player-area{padding:24px 20px} .play-btn{width:56px;height:56px;font-size:18px} }
-  @media(max-width:520px){ .room-header{padding:14px 16px} .code-box{display:none} }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0f;--bg2:#0f1117;--bg3:#141720;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --text:#f0f2f8;--muted:#6b7280;
+  --accent:#6ee7b7;--accent2:#34d399;--accent3:#059669;
+  --host:#fbbf24;--danger:#f87171;
+  --r:14px;--rs:8px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:.18}
+.orb1{width:600px;height:600px;background:#059669;top:-200px;right:-150px}
+.orb2{width:400px;height:400px;background:#0891b2;bottom:-100px;left:-100px}
+.page{display:none;min-height:100vh;position:relative;z-index:1}
+.page.active{display:flex}
+.glass{background:rgba(255,255,255,.05);border:1px solid var(--border2);backdrop-filter:blur(40px);border-radius:var(--r)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;letter-spacing:.08em}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn-p{background:var(--accent3);color:#fff}
+.btn-p:hover:not(:disabled){background:var(--accent2);box-shadow:0 0 30px rgba(52,211,153,.35)}
+.btn-g{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.btn-g:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn-d{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--danger)}
+.btn-ic{width:42px;height:42px;padding:0;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text);font-size:16px;cursor:pointer;transition:all .2s}
+.btn-ic:hover{background:rgba(255,255,255,.12);border-color:var(--accent);color:var(--accent)}
+.inp{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .2s}
+.inp:focus{border-color:var(--accent);background:rgba(110,231,183,.05)}
+.inp::placeholder{color:var(--muted)}
+label{display:block;font-size:12px;font-family:'Syne',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:12px;font-family:'Syne',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.dot{width:6px;height:6px;border-radius:50%}
+.ok{background:rgba(52,211,153,.12);color:var(--accent2);border:1px solid rgba(52,211,153,.2)}
+.ok .dot{background:var(--accent2);animation:pulse 2s infinite}
+.warn{background:rgba(251,191,36,.1);color:var(--host);border:1px solid rgba(251,191,36,.2)}
+.warn .dot{background:var(--host)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#home{flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+.logo{font-family:'Syne',sans-serif;font-size:clamp(48px,8vw,80px);font-weight:800;line-height:1;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;letter-spacing:-.02em}
+.tagline{color:var(--muted);font-size:clamp(14px,2.5vw,17px);margin-bottom:52px;font-weight:300}
+.cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:700px}
+.card{flex:1;min-width:280px;max-width:320px;padding:36px 32px;border-radius:20px;text-align:left;transition:all .3s}
+.card:hover{transform:translateY(-4px)}
+.card-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:20px}
+.ci-h{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25)}
+.ci-j{background:rgba(110,231,183,.1);border:1px solid rgba(110,231,183,.2)}
+.card-lbl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:6px}
+.card-ttl{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:10px}
+.card-dsc{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+#err{margin-top:24px;padding:14px 18px;border-radius:var(--rs);font-size:13px;display:none;max-width:500px;width:100%;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);color:#fca5a5}
+#room{flex-direction:column}
+.rhead{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:rgba(8,10,15,.85);backdrop-filter:blur(20px);position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:10px}
+.rhead-l{display:flex;align-items:center;gap:14px}
+.rbrand{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.codebox{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--rs);padding:5px 12px}
+.codelbl{font-size:11px;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.1em}
+.codeval{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.15em}
+.copybtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;transition:color .2s;padding:2px 4px}
+.copybtn:hover{color:var(--accent)}
+.rhead-r{display:flex;align-items:center;gap:10px}
+.rolebadge{padding:5px 12px;border-radius:100px;font-size:12px;font-family:'Syne',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.rb-host{background:rgba(251,191,36,.12);color:var(--host);border:1px solid rgba(251,191,36,.25)}
+.rb-list{background:rgba(110,231,183,.1);color:var(--accent);border:1px solid rgba(110,231,183,.2)}
+.rbody{display:flex;flex:1;overflow:hidden;height:calc(100vh - 65px)}
+.sidebar{width:270px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-sec{padding:18px 16px;border-bottom:1px solid var(--border)}
+.sb-ttl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.uc{background:rgba(110,231,183,.1);color:var(--accent);padding:2px 8px;border-radius:100px;font-size:10px}
+.ulist{list-style:none;display:flex;flex-direction:column;gap:6px}
+.uitem{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--rs);background:rgba(255,255,255,.02)}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;flex-shrink:0}
+.av-h{background:rgba(251,191,36,.15);color:var(--host);border:1px solid rgba(251,191,36,.3)}
+.av-l{background:rgba(110,231,183,.1);color:var(--accent);border:1px solid rgba(110,231,183,.2)}
+.u-name{font-size:13px;font-weight:500}
+.u-role{font-size:10px;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase}
+.u-you{font-size:10px;color:var(--accent)}
+.queue-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0}
+.queue-hdr-lbl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.add-btn{background:rgba(110,231,183,.1);border:1px solid rgba(110,231,183,.2);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;transition:all .2s}
+.add-btn:hover{background:rgba(110,231,183,.18)}
+#queue-file{display:none}
+.tracklist{flex:1;overflow-y:auto;padding:10px}
+.tracklist::-webkit-scrollbar{width:3px}
+.tracklist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.titem{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--rs);cursor:pointer;transition:all .2s;border:1px solid transparent}
+.titem:hover{background:rgba(255,255,255,.04)}
+.titem.active{background:rgba(110,231,183,.06);border-color:rgba(110,231,183,.15)}
+.tnum{width:18px;text-align:center;font-size:11px;color:var(--muted);flex-shrink:0}
+.titem.active .tnum{display:none}
+.twave{display:none;width:18px;align-items:center;gap:1.5px;height:14px;flex-shrink:0}
+.titem.active .twave{display:flex}
+.wb{width:2px;background:var(--accent);border-radius:1px;animation:wv .8s ease-in-out infinite}
+.wb:nth-child(2){animation-delay:.15s}.wb:nth-child(3){animation-delay:.3s}.wb:nth-child(4){animation-delay:.15s}
+@keyframes wv{0%,100%{height:4px}50%{height:12px}}
+.tinfo{flex:1;min-width:0}
+.tname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titem.active .tname{color:var(--accent)}
+.tsize{font-size:11px;color:var(--muted)}
+.twho{color:var(--host)}
+.no-tracks{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px;line-height:1.8}
+.player{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;overflow-y:auto}
+.art{width:clamp(160px,28vw,240px);height:clamp(160px,28vw,240px);border-radius:20px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:28px;position:relative;overflow:hidden;transition:all .5s;flex-shrink:0}
+.art.playing{box-shadow:0 0 60px rgba(52,211,153,.2),0 20px 60px rgba(0,0,0,.5)}
+.artbars{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:20px;opacity:0;transition:opacity .3s}
+.art.playing .artbars{opacity:.12}
+.ab{width:4px;background:var(--accent);border-radius:2px;animation:aw 1s ease-in-out infinite}
+.ab:nth-child(2){animation-delay:.1s;height:40%}.ab:nth-child(3){animation-delay:.2s;height:70%}
+.ab:nth-child(4){animation-delay:.3s;height:50%}.ab:nth-child(5){animation-delay:.2s;height:80%}
+.ab:nth-child(6){animation-delay:.1s;height:60%}.ab:nth-child(7){animation-delay:.25s;height:45%}
+@keyframes aw{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+.tmeta{text-align:center;margin-bottom:24px;width:100%;max-width:400px}
+.ttitle{font-family:'Syne',sans-serif;font-size:clamp(17px,3vw,22px);font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsub{color:var(--muted);font-size:13px}
+.progwrap{width:100%;max-width:400px;margin-bottom:20px}
+.trow{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:'Syne',sans-serif;margin-bottom:7px}
+.ptrack{width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:2px;cursor:pointer;transition:height .15s}
+.ptrack:hover{height:6px}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));border-radius:2px;width:0%;transition:width .25s linear}
+.ctrls{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.playbtn{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--accent3),var(--accent2));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;transition:all .2s;box-shadow:0 8px 28px rgba(52,211,153,.35)}
+.playbtn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 12px 40px rgba(52,211,153,.5)}
+.playbtn:disabled{opacity:.4;cursor:not-allowed}
+.volrow{display:flex;align-items:center;gap:10px;width:100%;max-width:400px}
+.volic{color:var(--muted);font-size:15px}
+.volslider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer}
+.volslider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.xfer{width:100%;max-width:400px;margin-top:18px;display:none}
+.xfer-lbl{font-size:12px;color:var(--muted);font-family:'Syne',sans-serif;margin-bottom:6px;display:flex;justify-content:space-between}
+.xfer-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.xfer-fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));border-radius:2px;width:0%;transition:width .15s}
+.dropzone{width:100%;max-width:400px;margin-top:20px;border:1.5px dashed var(--border2);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.02)}
+.dropzone:hover,.dropzone.over{border-color:var(--accent);background:rgba(110,231,183,.05)}
+.dz-icon{font-size:26px;margin-bottom:6px;display:block}
+.dz-txt{font-size:13px;color:var(--muted)}
+.dz-txt strong{color:var(--accent)}
+#hfile{display:none}
+.tapover{position:fixed;inset:0;z-index:200;background:rgba(8,10,15,.94);backdrop-filter:blur(24px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.tapover.hidden{display:none}
+.tappulse{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--accent3),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer;animation:tp 1.8s ease-in-out infinite;box-shadow:0 0 60px rgba(52,211,153,.4);border:none}
+@keyframes tp{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.tap-ttl{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+.tap-sub{font-size:14px;color:var(--muted);text-align:center;max-width:260px;line-height:1.7}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(20,23,32,.95);border:1px solid var(--border2);backdrop-filter:blur(20px);border-radius:var(--rs);padding:11px 18px;font-size:13px;z-index:1000;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.s{border-color:rgba(52,211,153,.3);color:var(--accent)}
+.toast.e{border-color:rgba(248,113,113,.3);color:var(--danger)}
+.syncbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:100px;background:rgba(8,10,15,.9);border:1px solid var(--border);backdrop-filter:blur(20px);display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);transition:all .3s;opacity:0;pointer-events:none;white-space:nowrap;z-index:50}
+.syncbar.show{opacity:1}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:pulse 1.5s infinite}
+.sdot.w{background:var(--host)}
+.rx-progress{width:100%;max-width:400px;margin-top:18px;display:none;text-align:center}
+.rx-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-top:6px}
+.rx-fill{height:100%;background:linear-gradient(90deg,var(--host),var(--accent));border-radius:2px;width:0%;transition:width .15s}
+@media(max-width:768px){.sidebar{display:none}.rbody{height:calc(100vh - 60px)}.player{padding:20px 16px}}
+@media(max-width:480px){.rhead{padding:12px 14px}.codebox{display:none}}
 </style>
 </head>
 <body>
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
 <div class="toast" id="toast"></div>
-<div class="sync-bar" id="sync-bar"><div class="sdot" id="sdot"></div><span id="sync-msg">Syncing…</span></div>
+<div class="syncbar" id="syncbar"><div class="sdot" id="sdot"></div><span id="syncmsg"></span></div>
+
+<!-- TAP OVERLAY -->
+<div class="tapover hidden" id="tapover">
+  <button class="tappulse" onclick="unlockAudio()">🎧</button>
+  <div class="tap-ttl">Tap to Listen</div>
+  <div class="tap-sub">Tap once to unlock audio.<br/>The track will stream directly from the host — no upload needed.</div>
+</div>
 
 <!-- HOME -->
-<div id="home-page" class="page active">
-  <div class="home-logo">SyncWave</div>
-  <div class="home-tagline">Listen together. In perfect sync.</div>
-  <div class="home-cards">
-    <div class="home-card glass-heavy">
-      <div class="card-icon host">🎵</div>
-      <div class="card-label">Host</div>
-      <div class="card-title">Create a Room</div>
-      <div class="card-desc">Upload music and control playback for everyone in real time.</div>
-      <div style="margin-bottom:12px"><label>Your Name</label><input type="text" class="input" id="host-name" placeholder="e.g. Alex" maxlength="24" /></div>
-      <button class="btn btn-primary" id="btn-create" style="width:100%" onclick="createRoom()">Create Room →</button>
+<div id="home" class="page active">
+  <div class="logo">SyncWave</div>
+  <div class="tagline">One upload. Everyone listens.</div>
+  <div class="cards">
+    <div class="card glass">
+      <div class="card-icon ci-h">🎵</div>
+      <div class="card-lbl">Host</div>
+      <div class="card-ttl">Create a Room</div>
+      <div class="card-dsc">Upload music once — it streams directly to every listener. No double upload.</div>
+      <div style="margin-bottom:12px"><label>Your Name</label><input class="inp" id="host-name" placeholder="e.g. Alex" maxlength="24"/></div>
+      <button class="btn btn-p" style="width:100%" onclick="createRoom()">Create Room →</button>
     </div>
-    <div class="home-card glass-heavy">
-      <div class="card-icon join">🎧</div>
-      <div class="card-label">Listener</div>
-      <div class="card-title">Join a Room</div>
-      <div class="card-desc">Enter a room code to sync up with the host instantly.</div>
-      <div style="margin-bottom:12px"><label>Your Name</label><input type="text" class="input" id="listener-name" placeholder="e.g. Jamie" maxlength="24" /></div>
-      <div style="margin-bottom:12px"><label>Room Code</label><input type="text" class="input" id="room-code-input" placeholder="e.g. WAVE-4821" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" oninput="this.value=this.value.toUpperCase()" /></div>
-      <button class="btn btn-ghost" id="btn-join" style="width:100%;border-color:rgba(110,231,183,.3);color:var(--accent)" onclick="joinRoom()">Join Room →</button>
+    <div class="card glass">
+      <div class="card-icon ci-j">🎧</div>
+      <div class="card-lbl">Listener</div>
+      <div class="card-ttl">Join a Room</div>
+      <div class="card-dsc">Enter a code — music streams straight to you. No file needed on your device.</div>
+      <div style="margin-bottom:12px"><label>Your Name</label><input class="inp" id="listener-name" placeholder="e.g. Jamie" maxlength="24"/></div>
+      <div style="margin-bottom:12px"><label>Room Code</label><input class="inp" id="code-inp" placeholder="e.g. WAVE-4821" maxlength="9" style="text-transform:uppercase;letter-spacing:.1em" oninput="this.value=this.value.toUpperCase()"/></div>
+      <button class="btn btn-g" style="width:100%;border-color:rgba(110,231,183,.3);color:var(--accent)" onclick="joinRoom()">Join Room →</button>
     </div>
   </div>
   <div id="err"></div>
 </div>
 
 <!-- ROOM -->
-<div id="room-page" class="page">
-  <div class="room-header">
-    <div class="room-header-left">
-      <div class="room-brand">SyncWave</div>
-      <div class="code-box">
-        <span class="code-label">Room</span>
-        <span class="code-val" id="header-code">——</span>
-        <button class="copy-btn" onclick="copyCode()">⧉</button>
+<div id="room" class="page">
+  <div class="rhead">
+    <div class="rhead-l">
+      <div class="rbrand">SyncWave</div>
+      <div class="codebox">
+        <span class="codelbl">Room</span>
+        <span class="codeval" id="hdr-code">——</span>
+        <button class="copybtn" onclick="copyCode()">⧉</button>
       </div>
     </div>
-    <div class="room-header-right">
+    <div class="rhead-r">
       <div id="conn-badge" class="badge warn"><div class="dot"></div>Connecting…</div>
-      <div id="role-badge" class="role-badge role-host">Host</div>
-      <button class="btn btn-danger" style="padding:8px 14px;font-size:12px" onclick="leaveRoom()">Leave</button>
+      <div id="role-badge" class="rolebadge rb-host">Host</div>
+      <button class="btn btn-d" style="padding:7px 12px;font-size:12px" onclick="leaveRoom()">Leave</button>
     </div>
   </div>
-  <div class="room-body">
+  <div class="rbody">
     <div class="sidebar">
-      <div class="sb-section">
-        <div class="sb-title">Listeners <span class="uc" id="user-count">0</span></div>
-        <ul class="user-list" id="user-list"></ul>
+      <div class="sb-sec">
+        <div class="sb-ttl">In Room <span class="uc" id="ucount">0</span></div>
+        <ul class="ulist" id="ulist"></ul>
       </div>
-      <div class="sb-title" style="padding:16px 20px 0">Queue</div>
-      <div class="tracklist" id="tracklist"><div class="no-tracks">🎵<br/>No tracks loaded.</div></div>
+      <div class="queue-hdr">
+        <span class="queue-hdr-lbl">Queue</span>
+        <button class="add-btn" onclick="document.getElementById('queue-file').click()">+ Add</button>
+        <input type="file" id="queue-file" multiple accept="audio/*" onchange="addToQueue(this.files)"/>
+      </div>
+      <div class="tracklist" id="tracklist">
+        <div class="no-tracks">🎵<br/>No tracks yet.<br/><span style="font-size:12px">Anyone can add tracks!</span></div>
+      </div>
     </div>
-    <div class="player-area">
-      <div class="album-art" id="album-art">
+    <div class="player">
+      <div class="art" id="art">
         <span id="art-emoji">🎵</span>
-        <div class="art-bars">
+        <div class="artbars">
           <div class="ab" style="height:30%"></div><div class="ab" style="height:40%"></div>
           <div class="ab" style="height:70%"></div><div class="ab" style="height:50%"></div>
           <div class="ab" style="height:80%"></div><div class="ab" style="height:60%"></div>
           <div class="ab" style="height:45%"></div>
         </div>
       </div>
-      <div class="track-meta">
-        <div class="track-title" id="track-title">No track selected</div>
-        <div class="track-sub" id="track-sub">Upload a file to begin</div>
+      <div class="tmeta">
+        <div class="ttitle" id="ttitle">No track selected</div>
+        <div class="tsub" id="tsub">Add a track to begin</div>
       </div>
-      <div class="progress-wrap">
-        <div class="time-row"><span id="time-cur">0:00</span><span id="time-tot">0:00</span></div>
-        <div class="prog-track" id="prog-track" onclick="seekTrack(event)">
-          <div class="prog-fill" id="prog-fill"></div>
+      <div class="progwrap">
+        <div class="trow"><span id="tcur">0:00</span><span id="ttot">0:00</span></div>
+        <div class="ptrack" id="ptrack" onclick="seekTo(event)">
+          <div class="pfill" id="pfill"></div>
         </div>
       </div>
-      <div class="controls">
-        <button class="btn-icon" id="btn-prev" onclick="prevTrack()">⏮</button>
-        <button class="play-btn" id="btn-play" onclick="togglePlay()" disabled>▶</button>
-        <button class="btn-icon" id="btn-next" onclick="nextTrack()">⏭</button>
+      <div class="ctrls">
+        <button class="btn-ic" onclick="prevTrack()">⏮</button>
+        <button class="playbtn" id="playbtn" onclick="togglePlay()" disabled>▶</button>
+        <button class="btn-ic" onclick="nextTrack()">⏭</button>
       </div>
-      <div class="vol-row">
-        <span class="vol-icon">🔈</span>
-        <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="70" oninput="setVolume(this.value)" />
-        <span class="vol-icon">🔊</span>
+      <div class="volrow">
+        <span class="volic">🔈</span>
+        <input type="range" class="volslider" id="volslider" min="0" max="100" value="80" oninput="setVol(this.value)"/>
+        <span class="volic">🔊</span>
       </div>
-      <div class="upload-section" id="upload-section">
-        <div class="upload-area" id="upload-area"
-             onclick="document.getElementById('file-input').click()"
-             ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="dropFiles(event)">
-          <span class="upload-icon">📂</span>
-          <div class="upload-text"><strong>Click or drag</strong> audio files here<br/><span style="font-size:12px">.mp3 .wav .ogg .flac</span></div>
-        </div>
-        <input type="file" id="file-input" multiple accept="audio/*" onchange="loadFiles(this.files)" />
+      <!-- Sender progress (host / uploader) -->
+      <div class="xfer" id="xfer">
+        <div class="xfer-lbl"><span id="xfer-txt">Streaming…</span><span id="xfer-pct">0%</span></div>
+        <div class="xfer-bar"><div class="xfer-fill" id="xfer-fill"></div></div>
       </div>
+      <!-- Receiver progress (listeners) -->
+      <div class="rx-progress" id="rx-progress">
+        <div class="tsub" id="rx-txt">Receiving track… 0%</div>
+        <div class="rx-bar"><div class="rx-fill" id="rx-fill"></div></div>
+      </div>
+      <!-- Upload dropzone (visible to everyone — anyone can add) -->
+      <div class="dropzone" id="dropzone"
+           onclick="document.getElementById('hfile').click()"
+           ondragover="dzOver(event)" ondragleave="dzOut()" ondrop="dzDrop(event)">
+        <span class="dz-icon">📂</span>
+        <div class="dz-txt" id="dz-txt"><strong>Click or drag</strong> audio files to add to queue<br/><span style="font-size:11px">.mp3 .wav .ogg .flac — streams to everyone</span></div>
+      </div>
+      <input type="file" id="hfile" multiple accept="audio/*" onchange="addToQueue(this.files)"/>
     </div>
   </div>
-</div>
-
-<!-- TAP TO SYNC OVERLAY (listeners only) -->
-<div class="tap-overlay hidden" id="tap-overlay">
-  <button class="tap-pulse" onclick="unlockAudio()">🎧</button>
-  <div class="tap-title">Tap to Sync</div>
-  <div class="tap-sub">Your browser requires a tap before playing audio. Tap to join the stream.</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 'use strict';
 
-// ── CREDENTIALS ────────────────────────────────────────────────
-const SB_URL = 'https://hspoajmdbuazdlhiifbj.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzcG9ham1kYnVhemRsaGlpZmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzY1NDQsImV4cCI6MjA4ODQ1MjU0NH0.FwHGr-DitLtRvjjbMWrevNXh8w9h5sytI5nuR1EYQlg';
+const SB_URL     = 'https://hspoajmdbuazdlhiifbj.supabase.co';
+const SB_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzcG9ham1kYnVhemRsaGlpZmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzY1NDQsImV4cCI6MjA4ODQ1MjU0NH0.FwHGr-DitLtRvjjbMWrevNXh8w9h5sytI5nuR1EYQlg';
+const CHUNK_SIZE = 48 * 1024; // 48 KB per message
+const CHUNK_GAP  = 30;        // ms between chunks
 
-// ── STATE ──────────────────────────────────────────────────────
-let sb, roomChannel;
-let myId       = null;
-let myName     = null;
-let isHost     = false;
-let roomCode   = null;
-let tracks     = [];
-let trackIdx   = -1;
-let audioEl    = new Audio();
-let isPlaying  = false;
-let roomState  = {};          // full state the host broadcasts
-let users      = {};          // id → {name, role}
+let sb, ch;
+let myId      = Math.random().toString(36).substr(2,10);
+let myName    = 'User';
+let isHost    = false;
+let roomCode  = null;
+let users     = {};
+let queue     = [];   // {id, name, size, mimeType, addedBy, data:ArrayBuffer|null, localUrl:string|null}
+let qIdx      = -1;
+let audioEl   = new Audio();
+let isPlaying = false;
+let lastState = null;
+
+// Rx state (listeners receiving a streamed file)
+let rx = { trackId:null, chunks:[], total:0, received:0 };
 
 // ── INIT ───────────────────────────────────────────────────────
 window.addEventListener('load', () => {
-  setVolume(70);
+  setVol(80);
   sb = window.supabase.createClient(SB_URL, SB_KEY, {
-    realtime: { params: { eventsPerSecond: 20 } }
+    realtime:{ params:{ eventsPerSecond:30 } }
   });
-  console.log('✓ Supabase ready');
 });
 
-// ────────────────────────────────────────────────────────────────
-//  NO DATABASE TABLE NEEDED — everything runs over
-//  Supabase Realtime Broadcast channels (pure WebSocket).
-//  Rooms are identified by a code; state lives in memory.
-// ────────────────────────────────────────────────────────────────
-
 // ── UTILS ──────────────────────────────────────────────────────
-function genId() { return Math.random().toString(36).substr(2,10); }
 function genCode() {
   const w=['WAVE','BEAT','SYNC','TUNE','BASS','FLOW','VIBE','ECHO','RIFF','JAZZ'];
   return w[Math.floor(Math.random()*w.length)]+'-'+Math.floor(1000+Math.random()*9000);
 }
-function fmt(s) {
-  if (!isFinite(s)) return '0:00';
-  return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function fmt(s){ if(!isFinite(s)||s<0)return'0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+function emo(n=''){
+  n=n.toLowerCase();
+  if(n.includes('jazz')||n.includes('swing'))return'🎷';
+  if(n.includes('rock')||n.includes('metal'))return'🎸';
+  if(n.includes('piano')||n.includes('class'))return'🎹';
+  if(n.includes('hip')||n.includes('rap'))return'🎤';
+  if(n.includes('electro')||n.includes('edm'))return'🎛️';
+  if(n.includes('chill')||n.includes('lofi'))return'🌙';
+  return'🎵';
 }
-function toast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast show ${type}`;
-  clearTimeout(t._t); t._t = setTimeout(()=>t.className='toast', 3000);
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast show ${type}`;
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast',3000);
 }
-function syncMsg(msg, warn=false) {
-  const b = document.getElementById('sync-bar');
-  document.getElementById('sync-msg').textContent = msg;
-  document.getElementById('sdot').className = 'sdot'+(warn?' warn':'');
-  b.classList.add('show'); clearTimeout(b._t); b._t = setTimeout(()=>b.classList.remove('show'), 2500);
+function syncMsg(msg,warn=false){
+  const b=document.getElementById('syncbar');
+  document.getElementById('syncmsg').textContent=msg;
+  document.getElementById('sdot').className='sdot'+(warn?' w':'');
+  b.classList.add('show'); clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove('show'),3000);
 }
-function showErr(msg) {
-  const e = document.getElementById('err');
-  e.style.display = 'block'; e.textContent = '❌ ' + msg;
-}
-function clearErr() { document.getElementById('err').style.display = 'none'; }
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function setBadge(state) {
-  const b = document.getElementById('conn-badge');
-  const m = {connecting:['warn','Connecting…'], connected:['ok','Live'], error:['warn','Reconnecting…']};
-  const [c,t] = m[state]||m.connecting;
-  b.className = `badge ${c}`; b.innerHTML = `<div class="dot"></div>${t}`;
+function showErr(msg){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='❌ '+msg; }
+function clearErr(){ document.getElementById('err').style.display='none'; }
+function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function setBadge(s){
+  const b=document.getElementById('conn-badge');
+  const m={connecting:['warn','Connecting…'],connected:['ok','Live'],error:['warn','Reconnecting…']};
+  const[c,t]=m[s]||m.connecting;
+  b.className=`badge ${c}`; b.innerHTML=`<div class="dot"></div>${t}`;
 }
 
-// ── CREATE ROOM ────────────────────────────────────────────────
-function createRoom() {
+// ── HOME ───────────────────────────────────────────────────────
+function createRoom(){
   clearErr();
-  const name = document.getElementById('host-name').value.trim() || 'Host';
-  myId = genId(); myName = name; isHost = true;
-  roomCode = genCode();
-  users = { [myId]: {name, role:'host'} };
-  roomState = { isPlaying:false, pos:0, lastUpdated:Date.now(), trackName:'' };
+  myName=document.getElementById('host-name').value.trim()||'Host';
+  isHost=true; roomCode=genCode();
+  users[myId]={name:myName,role:'host'};
   enterRoom();
 }
-
-// ── JOIN ROOM ──────────────────────────────────────────────────
-function joinRoom() {
+function joinRoom(){
   clearErr();
-  const name = document.getElementById('listener-name').value.trim() || 'Listener';
-  const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-  if (!code || code.length < 4) { showErr('Enter a valid room code'); return; }
-  myId = genId(); myName = name; isHost = false;
-  roomCode = code;
-  users = { [myId]: {name, role:'listener'} };
+  const code=document.getElementById('code-inp').value.trim().toUpperCase();
+  if(!code||code.length<4){showErr('Enter a valid room code');return;}
+  myName=document.getElementById('listener-name').value.trim()||'Listener';
+  isHost=false; roomCode=code;
+  users[myId]={name:myName,role:'listener'};
   enterRoom();
 }
 
 // ── ENTER ROOM ─────────────────────────────────────────────────
-function enterRoom() {
-  showPage('room-page');
-  document.getElementById('header-code').textContent   = roomCode;
-  document.getElementById('role-badge').textContent    = isHost ? 'Host' : 'Listener';
-  document.getElementById('role-badge').className      = 'role-badge '+(isHost?'role-host':'role-listener');
-  document.getElementById('upload-section').style.display = isHost ? 'block' : 'none';
-  document.getElementById('btn-play').disabled         = !isHost;
-  document.getElementById('btn-prev').style.opacity    = isHost ? '1' : '0.35';
-  document.getElementById('btn-next').style.opacity    = isHost ? '1' : '0.35';
-  document.getElementById('prog-track').style.cursor   = isHost ? 'pointer' : 'default';
-  if (!isHost) {
-    document.getElementById('prog-track').onclick = null;
-    // Show tap-to-sync overlay so mobile browser unlocks audio
-    document.getElementById('tap-overlay').classList.remove('hidden');
+function enterRoom(){
+  showPage('room');
+  document.getElementById('hdr-code').textContent=roomCode;
+  document.getElementById('role-badge').textContent=isHost?'Host':'Listener';
+  document.getElementById('role-badge').className='rolebadge '+(isHost?'rb-host':'rb-list');
+  document.getElementById('playbtn').disabled=!isHost;
+  document.getElementById('ptrack').style.cursor=isHost?'pointer':'default';
+  if(!isHost){
+    document.getElementById('ptrack').onclick=null;
+    document.getElementById('tapover').classList.remove('hidden');
   }
   setBadge('connecting');
   openChannel();
 }
 
-// ── REALTIME CHANNEL ───────────────────────────────────────────
-function openChannel() {
-  if (roomChannel) sb.removeChannel(roomChannel);
+// ── CHANNEL ────────────────────────────────────────────────────
+function openChannel(){
+  if(ch) sb.removeChannel(ch);
+  ch=sb.channel(`sw:${roomCode}`,{config:{broadcast:{self:false}}});
 
-  roomChannel = sb.channel(`syncwave:${roomCode}`, {
-    config: { broadcast: { self: false } }
-  });
+  ch.on('broadcast',{event:'state'},  ({payload})=>{ lastState=payload; if(!isHost) applyState(payload); });
+  ch.on('broadcast',{event:'queue'},  ({payload})=>{ mergeQueue(payload); });
+  ch.on('broadcast',{event:'chunk'},  ({payload})=>{ if(payload.fromId!==myId) recvChunk(payload); });
+  ch.on('broadcast',{event:'done'},   ({payload})=>{ if(payload.trackId===rx.trackId) finalizeRx(payload); });
+  ch.on('broadcast',{event:'join'},   ({payload})=>{ users[payload.id]={name:payload.name,role:'listener'}; renderUsers(); if(isHost){ broadcastUsers(); broadcastState(isPlaying,audioEl.currentTime||0); broadcastQueueMeta(); } });
+  ch.on('broadcast',{event:'leave'},  ({payload})=>{ delete users[payload.id]; renderUsers(); });
+  ch.on('broadcast',{event:'users'},  ({payload})=>{ Object.assign(users,payload.u); renderUsers(); });
 
-  // Listen for host state broadcasts
-  roomChannel.on('broadcast', { event: 'state' }, ({ payload }) => {
-    roomState = payload;
-    if (!isHost) applyState(payload);
-  });
-
-  // Listen for user presence updates
-  roomChannel.on('broadcast', { event: 'users' }, ({ payload }) => {
-    // merge — keep our own entry
-    Object.assign(users, payload.users);
-    renderUsers();
-  });
-
-  // Listen for join requests (host responds with full state)
-  roomChannel.on('broadcast', { event: 'join' }, ({ payload }) => {
-    // Add new user to list
-    users[payload.id] = { name: payload.name, role: 'listener' };
-    renderUsers();
-    if (isHost) {
-      // Send current state + full user list to the new joiner
-      broadcastUsers();
-      broadcastState(isPlaying, audioEl.src ? audioEl.currentTime : 0);
-    }
-  });
-
-  // Listen for leave events
-  roomChannel.on('broadcast', { event: 'leave' }, ({ payload }) => {
-    delete users[payload.id];
-    renderUsers();
-  });
-
-  roomChannel.subscribe(status => {
-    console.log('Channel status:', status);
-    if (status === 'SUBSCRIBED') {
+  ch.subscribe(status=>{
+    if(status==='SUBSCRIBED'){
       setBadge('connected');
-      if (isHost) {
-        broadcastUsers();
-        toast('✓ Room created — share the code!', 'success');
-      } else {
-        // Announce ourselves so host adds us
-        roomChannel.send({ type:'broadcast', event:'join', payload:{ id:myId, name:myName } });
-        toast('✓ Joined room', 'success');
-      }
-    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      setBadge('error');
-      // Retry
-      setTimeout(openChannel, 3000);
+      if(isHost){ broadcastUsers(); toast('✓ Room created — share the code!','s'); }
+      else{ ch.send({type:'broadcast',event:'join',payload:{id:myId,name:myName}}); toast('✓ Joined room','s'); }
+    } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+      setBadge('error'); setTimeout(openChannel,3000);
     }
   });
 }
 
-// ── BROADCAST HELPERS ──────────────────────────────────────────
-function broadcastState(playing, pos) {
-  if (!isHost || !roomChannel) return;
-  const payload = {
-    isPlaying: playing,
-    pos: pos,
-    lastUpdated: Date.now(),
-    trackName: tracks[trackIdx]?.name || ''
-  };
-  roomState = payload;
-  roomChannel.send({ type:'broadcast', event:'state', payload });
+// ── BROADCAST ─────────────────────────────────────────────────
+function broadcastState(playing,pos){
+  if(!ch) return;
+  const p={isPlaying:playing,pos,lastUpdated:Date.now(),trackName:queue[qIdx]?.name||'',qIdx};
+  lastState=p;
+  ch.send({type:'broadcast',event:'state',payload:p});
+}
+function broadcastQueueMeta(ci){
+  if(!ch) return;
+  ch.send({type:'broadcast',event:'queue',payload:{
+    items:queue.map(({id,name,size,addedBy})=>({id,name,size,addedBy})),
+    qIdx: ci!==undefined?ci:qIdx
+  }});
+}
+function broadcastUsers(){
+  if(!ch) return;
+  ch.send({type:'broadcast',event:'users',payload:{u:users}});
 }
 
-function broadcastUsers() {
-  if (!roomChannel) return;
-  roomChannel.send({ type:'broadcast', event:'users', payload:{ users } });
-}
-
-// ── UNLOCK AUDIO (listeners — mobile autoplay policy) ──────────
-let pendingState = null;
-function unlockAudio() {
-  // Play a silent buffer to unlock audio context on mobile
-  audioEl.play().catch(()=>{});
-  audioEl.pause();
-  document.getElementById('tap-overlay').classList.add('hidden');
-  toast('✓ Audio unlocked — syncing…', 'success');
-  // If host was already playing before we tapped, apply it now
-  if (pendingState) { applyState(pendingState); pendingState = null; }
-}
-
-// ── APPLY STATE (listeners only) ───────────────────────────────
-function applyState(state) {
-  // If listener hasn't tapped yet, queue the state for when they do
-  if (!document.getElementById('tap-overlay').classList.contains('hidden')) {
-    pendingState = state;
-    if (state.trackName) document.getElementById('track-title').textContent = state.trackName;
-    document.getElementById('track-sub').textContent = '🎵 Host is playing — tap to sync';
-    return;
+// ── STREAM FILE TO LISTENERS ───────────────────────────────────
+async function streamFile(trackId){
+  const t=queue.find(q=>q.id===trackId);
+  if(!t||!t.data) return;
+  const buf=t.data, total=buf.byteLength, n=Math.ceil(total/CHUNK_SIZE);
+  const xfer=document.getElementById('xfer');
+  xfer.style.display='block';
+  document.getElementById('xfer-txt').textContent=`Streaming "${t.name}"…`;
+  for(let i=0;i<n;i++){
+    const sl=buf.slice(i*CHUNK_SIZE,(i+1)*CHUNK_SIZE);
+    const b64=bufToB64(sl);
+    await ch.send({type:'broadcast',event:'chunk',payload:{trackId,i,n,b64,fromId:myId,mime:t.mimeType}});
+    const pct=Math.round((i+1)/n*100);
+    document.getElementById('xfer-fill').style.width=pct+'%';
+    document.getElementById('xfer-pct').textContent=pct+'%';
+    await sleep(CHUNK_GAP);
   }
-  if (state.trackName) {
-    document.getElementById('track-title').textContent = state.trackName;
-    document.getElementById('track-sub').textContent   = 'From host';
+  await ch.send({type:'broadcast',event:'done',payload:{trackId,mime:t.mimeType||'audio/mpeg'}});
+  xfer.style.display='none';
+  document.getElementById('xfer-fill').style.width='0%';
+  toast(`✓ Streamed "${t.name}" to listeners`,'s');
+}
+
+function bufToB64(buf){
+  const bytes=new Uint8Array(buf);
+  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── RECEIVE CHUNKS ─────────────────────────────────────────────
+function recvChunk({trackId,i,n,b64,mime}){
+  if(trackId!==rx.trackId){
+    rx={trackId,chunks:new Array(n),total:n,received:0,mime};
+    document.getElementById('rx-progress').style.display='block';
   }
+  const bin=atob(b64), arr=new Uint8Array(bin.length);
+  for(let j=0;j<bin.length;j++) arr[j]=bin.charCodeAt(j);
+  rx.chunks[i]=arr; rx.received++;
+  const pct=Math.round(rx.received/rx.total*100);
+  document.getElementById('rx-txt').textContent=`Receiving track… ${pct}%`;
+  document.getElementById('rx-fill').style.width=pct+'%';
+}
 
-  const elapsed = (Date.now() - state.lastUpdated) / 1000;
-  const target  = state.pos + (state.isPlaying ? elapsed : 0);
-
-  if (state.isPlaying && audioEl.paused) {
-    audioEl.currentTime = Math.min(target, audioEl.duration || 9999);
-    audioEl.play().catch(()=>{});
-    isPlaying = true; updatePlayBtn(); syncMsg('Synced with host ✓');
-  } else if (!state.isPlaying && !audioEl.paused) {
-    audioEl.pause();
-    audioEl.currentTime = Math.min(state.pos, audioEl.duration || 9999);
-    isPlaying = false; updatePlayBtn(); syncMsg('Paused by host');
-  } else if (state.isPlaying && !audioEl.paused) {
-    const drift = Math.abs(audioEl.currentTime - target);
-    if (drift > 1.5) {
-      audioEl.currentTime = Math.min(target, audioEl.duration || 9999);
-      syncMsg(`Corrected ${drift.toFixed(1)}s drift`);
+function finalizeRx({trackId,mime}){
+  const totalBytes=rx.chunks.reduce((s,c)=>s+(c?.byteLength||0),0);
+  const out=new Uint8Array(totalBytes);
+  let off=0; for(const c of rx.chunks){ if(c){out.set(c,off);off+=c.byteLength;} }
+  const blob=new Blob([out],{type:mime||'audio/mpeg'});
+  const url=URL.createObjectURL(blob);
+  const item=queue.find(q=>q.id===trackId);
+  if(item){ item.localUrl=url; item.data=out.buffer; }
+  document.getElementById('rx-progress').style.display='none';
+  document.getElementById('rx-fill').style.width='0%';
+  syncMsg('Track ready ✓'); renderQueue();
+  // If this is the current track, load it
+  if(queue[qIdx]?.id===trackId){
+    audioEl.src=url; audioEl.load();
+    document.getElementById('playbtn').disabled=false;
+    // If host was playing, jump to correct position and play
+    if(lastState&&lastState.isPlaying){
+      const elapsed=(Date.now()-lastState.lastUpdated)/1000;
+      const target=lastState.pos+elapsed;
+      audioEl.addEventListener('canplay',()=>{
+        audioEl.currentTime=Math.min(target,audioEl.duration||9999);
+        audioEl.play().catch(()=>{});
+      },{once:true});
     }
   }
 }
 
-// ── RENDER USERS ───────────────────────────────────────────────
-function renderUsers() {
-  const list = Object.entries(users);
-  document.getElementById('user-count').textContent = list.length;
-  document.getElementById('user-list').innerHTML = list.map(([id, u]) => {
-    const me = id === myId;
-    const av = u.role === 'host' ? 'av-host' : 'av-list';
-    return `<li class="user-item">
-      <div class="avatar ${av}">${u.name.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:0">
-        <div class="u-name">${u.name}${me?` <span class="u-you">(you)</span>`:''}</div>
-        <div class="u-role">${u.role}</div>
-      </div>
-      ${u.role==='host'?'<span>👑</span>':''}
-    </li>`;
-  }).join('');
+// ── MERGE QUEUE META (received by listeners) ───────────────────
+function mergeQueue({items,qIdx:newIdx}){
+  items.forEach(item=>{
+    if(!queue.find(q=>q.id===item.id)) queue.push({...item,data:null,localUrl:null});
+  });
+  if(newIdx!==undefined && newIdx!==qIdx){
+    qIdx=newIdx;
+    const t=queue[qIdx];
+    if(t){
+      document.getElementById('ttitle').textContent=t.name;
+      document.getElementById('tsub').textContent=t.localUrl?`Added by ${t.addedBy||'?'}`:'⏳ Receiving track…';
+      document.getElementById('art-emoji').textContent=emo(t.name);
+    }
+  }
+  renderQueue();
 }
 
-// ── HOST CONTROLS ──────────────────────────────────────────────
-async function togglePlay() {
-  if (!isHost) return;
-  if (trackIdx < 0) { toast('Upload a track first','error'); return; }
-  if (isPlaying) {
-    audioEl.pause(); isPlaying = false;
-    broadcastState(false, audioEl.currentTime);
+// ── ADD TO QUEUE (anyone can call this) ───────────────────────
+function addToQueue(files){
+  const af=Array.from(files).filter(f=>f.type.startsWith('audio/')||/\.(mp3|wav|ogg|flac|aac|m4a)$/i.test(f.name));
+  if(!af.length){toast('No audio files','e');return;}
+  const promises=af.map(f=>new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const id=Math.random().toString(36).substr(2,8);
+      queue.push({id,name:f.name.replace(/\.[^.]+$/,''),size:(f.size/1024/1024).toFixed(1)+' MB',
+        mimeType:f.type||'audio/mpeg',addedBy:myName,data:e.target.result,
+        localUrl:URL.createObjectURL(f)});
+      res(id);
+    };
+    reader.readAsArrayBuffer(f);
+  }));
+  Promise.all(promises).then(ids=>{
+    renderQueue(); broadcastQueueMeta();
+    toast(`✓ Added ${af.length} track${af.length>1?'s':''}  — streaming to listeners…`,'s');
+    ids.forEach(id=>streamFile(id));
+    if(qIdx<0) loadTrack(queue.length-ids.length);
+  });
+}
+
+// ── LOAD TRACK ────────────────────────────────────────────────
+function loadTrack(idx){
+  if(idx<0||idx>=queue.length) return;
+  qIdx=idx;
+  const t=queue[idx];
+  document.getElementById('ttitle').textContent=t.name;
+  document.getElementById('art-emoji').textContent=emo(t.name);
+  if(t.localUrl){
+    audioEl.src=t.localUrl; audioEl.load();
+    document.getElementById('tsub').textContent=`Added by ${t.addedBy||'?'}`;
+    document.getElementById('playbtn').disabled=!isHost;
   } else {
-    await audioEl.play(); isPlaying = true;
-    broadcastState(true, audioEl.currentTime);
+    document.getElementById('tsub').textContent='⏳ Receiving track…';
+    document.getElementById('playbtn').disabled=true;
+  }
+  isPlaying=false; updatePlayBtn(); renderQueue();
+  if(isHost){ broadcastState(false,0); broadcastQueueMeta(idx); }
+}
+
+// ── HOST CONTROLS ─────────────────────────────────────────────
+async function togglePlay(){
+  if(!isHost) return;
+  if(qIdx<0){toast('Add a track first','e');return;}
+  if(isPlaying){
+    audioEl.pause(); isPlaying=false; broadcastState(false,audioEl.currentTime);
+  } else {
+    try{ await audioEl.play(); isPlaying=true; broadcastState(true,audioEl.currentTime); }
+    catch(err){ toast('Playback error','e'); console.error(err); }
   }
   updatePlayBtn();
 }
+function seekTo(e){
+  if(!isHost||qIdx<0||!audioEl.duration) return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const t=((e.clientX-r.left)/r.width)*audioEl.duration;
+  audioEl.currentTime=t; broadcastState(isPlaying,t);
+}
+function prevTrack(){ if(isHost&&queue.length) loadTrack((qIdx-1+queue.length)%queue.length); }
+function nextTrack(){ if(isHost&&queue.length) loadTrack((qIdx+1)%queue.length); }
 
-function seekTrack(e) {
-  if (!isHost || trackIdx < 0) return;
-  const r = e.currentTarget.getBoundingClientRect();
-  const t = ((e.clientX - r.left) / r.width) * (audioEl.duration || 0);
-  audioEl.currentTime = t;
-  broadcastState(isPlaying, t);
-  syncMsg('Seeked — syncing listeners');
+// ── APPLY STATE (listeners) ───────────────────────────────────
+function applyState(state){
+  if(state.qIdx!==undefined&&state.qIdx!==qIdx){
+    qIdx=state.qIdx;
+    const t=queue[qIdx];
+    if(t){ document.getElementById('ttitle').textContent=t.name; document.getElementById('art-emoji').textContent=emo(t.name); }
+  }
+  if(state.trackName) document.getElementById('ttitle').textContent=state.trackName;
+  if(!audioEl.src||audioEl.src===window.location.href) return; // no file yet
+  const elapsed=(Date.now()-state.lastUpdated)/1000;
+  const target=state.pos+(state.isPlaying?elapsed:0);
+  if(state.isPlaying&&audioEl.paused){
+    audioEl.currentTime=Math.min(target,audioEl.duration||9999);
+    audioEl.play().catch(err=>{ if(err.name==='NotAllowedError') document.getElementById('tapover').classList.remove('hidden'); });
+    isPlaying=true; updatePlayBtn(); syncMsg('Synced ✓');
+    document.getElementById('tsub').textContent=`Added by ${queue[qIdx]?.addedBy||'host'}`;
+  } else if(!state.isPlaying&&!audioEl.paused){
+    audioEl.pause(); audioEl.currentTime=Math.min(state.pos,audioEl.duration||9999);
+    isPlaying=false; updatePlayBtn(); syncMsg('Paused by host');
+  } else if(state.isPlaying&&!audioEl.paused){
+    const drift=Math.abs(audioEl.currentTime-target);
+    if(drift>1.5){ audioEl.currentTime=Math.min(target,audioEl.duration||9999); syncMsg(`Drift corrected (${drift.toFixed(1)}s)`); }
+  }
 }
 
-function prevTrack() { if (isHost && tracks.length) loadTrack((trackIdx-1+tracks.length)%tracks.length); }
-function nextTrack() { if (isHost && tracks.length) loadTrack((trackIdx+1)%tracks.length); }
+// ── AUDIO EVENTS ─────────────────────────────────────────────
+audioEl.addEventListener('timeupdate',()=>{
+  if(!audioEl.duration) return;
+  document.getElementById('pfill').style.width=(audioEl.currentTime/audioEl.duration*100)+'%';
+  document.getElementById('tcur').textContent=fmt(audioEl.currentTime);
+  document.getElementById('ttot').textContent=fmt(audioEl.duration);
+  document.getElementById('art').classList.toggle('playing',!audioEl.paused);
+});
+audioEl.addEventListener('play', ()=>{ isPlaying=true;  updatePlayBtn(); document.getElementById('art').classList.add('playing'); });
+audioEl.addEventListener('pause',()=>{ isPlaying=false; updatePlayBtn(); document.getElementById('art').classList.remove('playing'); });
+audioEl.addEventListener('ended',()=>{
+  if(isHost){ if(qIdx<queue.length-1) nextTrack(); else{ isPlaying=false; updatePlayBtn(); broadcastState(false,0); } }
+});
 
-// ── AUDIO FILES ────────────────────────────────────────────────
-function loadFiles(files) {
-  const af = Array.from(files).filter(f => f.type.startsWith('audio/'));
-  if (!af.length) { toast('No audio files found','error'); return; }
-  tracks = [...tracks, ...af.map(f => ({
-    name: f.name.replace(/\.[^.]+$/, ''),
-    url: URL.createObjectURL(f),
-    size: (f.size/1024/1024).toFixed(1)+' MB'
-  }))];
-  renderTracklist();
-  if (trackIdx < 0) loadTrack(0);
-  toast(`✓ Loaded ${af.length} track${af.length>1?'s':''}`, 'success');
+// Heartbeat
+setInterval(()=>{ if(isHost&&isPlaying) broadcastState(true,audioEl.currentTime); },4000);
+
+function updatePlayBtn(){ document.getElementById('playbtn').textContent=isPlaying?'⏸':'▶'; }
+
+// ── UNLOCK AUDIO (mobile tap) ─────────────────────────────────
+function unlockAudio(){
+  document.getElementById('tapover').classList.add('hidden');
+  // Prime the audio context
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  ctx.resume(); ctx.close();
+  toast('✓ Audio ready — waiting for track to stream…','s');
 }
 
-function loadTrack(idx) {
-  if (idx < 0 || idx >= tracks.length) return;
-  trackIdx = idx;
-  const t = tracks[idx];
-  audioEl.src = t.url; audioEl.load();
-  document.getElementById('track-title').textContent = t.name;
-  document.getElementById('track-sub').textContent   = t.size;
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('art-emoji').textContent = emoji(t.name);
-  isPlaying = false; updatePlayBtn(); renderTracklist();
-  broadcastState(false, 0);
-  audioEl.onended = () => {
-    if (isHost) {
-      if (trackIdx < tracks.length-1) nextTrack();
-      else { isPlaying=false; updatePlayBtn(); broadcastState(false,0); }
-    }
-  };
+// ── RENDER ────────────────────────────────────────────────────
+function renderUsers(){
+  const list=Object.entries(users);
+  document.getElementById('ucount').textContent=list.length;
+  document.getElementById('ulist').innerHTML=list.map(([id,u])=>{
+    const me=id===myId, av=u.role==='host'?'av-h':'av-l';
+    return`<li class="uitem"><div class="av ${av}">${u.name[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div class="u-name">${u.name}${me?' <span class="u-you">(you)</span>':''}</div><div class="u-role">${u.role}${u.role==='host'?' 👑':''}</div></div></li>`;
+  }).join('');
 }
-
-function emoji(n) {
-  n = n.toLowerCase();
-  if (n.includes('jazz')||n.includes('swing'))  return '🎷';
-  if (n.includes('rock')||n.includes('metal'))  return '🎸';
-  if (n.includes('piano')||n.includes('class')) return '🎹';
-  if (n.includes('hip')||n.includes('rap'))     return '🎤';
-  if (n.includes('electro')||n.includes('edm')) return '🎛️';
-  if (n.includes('chill')||n.includes('lofi'))  return '🌙';
-  return '🎵';
-}
-
-function renderTracklist() {
-  const tl = document.getElementById('tracklist');
-  if (!tracks.length) { tl.innerHTML='<div class="no-tracks">🎵<br/>No tracks loaded.</div>'; return; }
-  tl.innerHTML = tracks.map((t,i) => `
-    <div class="track-item ${i===trackIdx?'active':''}"
-         onclick="${isHost?`loadTrack(${i})`:''}"
-         style="cursor:${isHost?'pointer':'default'}">
-      <div class="t-num">${i+1}</div>
-      <div class="t-wave"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
-      <div class="t-info"><div class="t-name">${t.name}</div><div class="t-size">${t.size}</div></div>
+function renderQueue(){
+  const tl=document.getElementById('tracklist');
+  if(!queue.length){tl.innerHTML='<div class="no-tracks">🎵<br/>No tracks yet.<br/><span style="font-size:12px">Anyone can add tracks!</span></div>';return;}
+  tl.innerHTML=queue.map((t,i)=>`
+    <div class="titem ${i===qIdx?'active':''}" onclick="${isHost?`loadTrack(${i})`:''}" style="cursor:${isHost?'pointer':'default'}">
+      <div class="tnum">${i+1}</div>
+      <div class="twave"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+      <div class="tinfo">
+        <div class="tname">${t.name}</div>
+        <div class="tsize">${t.size||''} ${t.addedBy?`<span class="twho">by ${t.addedBy}</span>`:''}${!t.localUrl&&!isHost?' ⏳':''}</div>
+      </div>
     </div>`).join('');
 }
 
-// ── AUDIO EVENTS ───────────────────────────────────────────────
-audioEl.addEventListener('timeupdate', () => {
-  if (!audioEl.duration) return;
-  document.getElementById('prog-fill').style.width = (audioEl.currentTime/audioEl.duration*100)+'%';
-  document.getElementById('time-cur').textContent  = fmt(audioEl.currentTime);
-  document.getElementById('time-tot').textContent  = fmt(audioEl.duration);
-  document.getElementById('album-art').classList.toggle('playing', !audioEl.paused);
-});
-audioEl.addEventListener('play',  () => { isPlaying=true;  updatePlayBtn(); document.getElementById('album-art').classList.add('playing'); });
-audioEl.addEventListener('pause', () => { isPlaying=false; updatePlayBtn(); document.getElementById('album-art').classList.remove('playing'); });
+// ── DRAG & DROP ───────────────────────────────────────────────
+function dzOver(e){ e.preventDefault(); document.getElementById('dropzone').classList.add('over'); }
+function dzOut(){  document.getElementById('dropzone').classList.remove('over'); }
+function dzDrop(e){ e.preventDefault(); dzOut(); addToQueue(e.dataTransfer.files); }
 
-// Heartbeat — host re-broadcasts position every 4s to correct drift
-setInterval(() => {
-  if (isHost && isPlaying) broadcastState(true, audioEl.currentTime);
-}, 4000);
-
-function updatePlayBtn() { document.getElementById('btn-play').textContent = isPlaying ? '⏸' : '▶'; }
-
-function setVolume(v) {
-  audioEl.volume = v/100;
-  document.getElementById('vol-slider').style.background =
-    `linear-gradient(to right,var(--accent3) 0%,var(--accent3) ${v}%,rgba(255,255,255,0.1) ${v}%,rgba(255,255,255,0.1) 100%)`;
+// ── VOLUME ────────────────────────────────────────────────────
+function setVol(v){
+  audioEl.volume=v/100;
+  document.getElementById('volslider').style.background=
+    `linear-gradient(to right,var(--accent3) 0%,var(--accent3) ${v}%,rgba(255,255,255,.1) ${v}%,rgba(255,255,255,.1) 100%)`;
 }
 
-// ── DRAG & DROP ────────────────────────────────────────────────
-function dragOver(e)  { e.preventDefault(); document.getElementById('upload-area').classList.add('drag-over'); }
-function dragLeave()  { document.getElementById('upload-area').classList.remove('drag-over'); }
-function dropFiles(e) { e.preventDefault(); dragLeave(); loadFiles(e.dataTransfer.files); }
-
-// ── LEAVE ──────────────────────────────────────────────────────
-async function leaveRoom() {
-  if (roomChannel) {
-    await roomChannel.send({ type:'broadcast', event:'leave', payload:{ id:myId } });
-    sb.removeChannel(roomChannel);
-    roomChannel = null;
-  }
-  audioEl.pause(); audioEl.src = '';
-  tracks=[]; trackIdx=-1; isPlaying=false; roomCode=null; users={};
-  renderTracklist(); renderUsers();
-  document.getElementById('track-title').textContent = 'No track selected';
-  document.getElementById('track-sub').textContent   = 'Upload a file to begin';
-  document.getElementById('prog-fill').style.width   = '0%';
-  document.getElementById('time-cur').textContent    = '0:00';
-  document.getElementById('time-tot').textContent    = '0:00';
-  document.getElementById('btn-play').disabled       = true;
-  document.getElementById('album-art').classList.remove('playing');
-  showPage('home-page');
+// ── LEAVE ────────────────────────────────────────────────────
+async function leaveRoom(){
+  if(ch){ await ch.send({type:'broadcast',event:'leave',payload:{id:myId}}); sb.removeChannel(ch); ch=null; }
+  audioEl.pause(); audioEl.src='';
+  queue=[]; qIdx=-1; isPlaying=false; users={}; rx={trackId:null,chunks:[],total:0,received:0};
+  renderQueue(); renderUsers();
+  ['ttitle','tsub'].forEach((id,i)=>document.getElementById(id).textContent=i?'Add a track to begin':'No track selected');
+  document.getElementById('pfill').style.width='0%';
+  document.getElementById('tcur').textContent='0:00';
+  document.getElementById('ttot').textContent='0:00';
+  document.getElementById('playbtn').disabled=true;
+  document.getElementById('art').classList.remove('playing');
+  document.getElementById('xfer').style.display='none';
+  document.getElementById('rx-progress').style.display='none';
+  document.getElementById('tapover').classList.add('hidden');
+  showPage('home');
 }
 
-function copyCode() {
-  navigator.clipboard.writeText(document.getElementById('header-code').textContent)
-    .then(()=>toast('Room code copied!','success')).catch(()=>{});
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('hdr-code').textContent)
+    .then(()=>toast('Code copied!','s')).catch(()=>{});
 }
 </script>
 </body>
