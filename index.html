@@ -150,6 +150,12 @@
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .toast.success { border-color:rgba(52,211,153,.3); color:var(--accent); }
   .toast.error   { border-color:rgba(248,113,113,.3); color:var(--danger); }
+  .tap-overlay { position:fixed; inset:0; z-index:200; background:rgba(8,10,15,.93); backdrop-filter:blur(24px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; transition:opacity .4s; }
+  .tap-overlay.hidden { display:none; }
+  .tap-pulse { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,var(--accent3),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:44px; cursor:pointer; animation:tapPulse 1.8s ease-in-out infinite; box-shadow:0 0 60px rgba(52,211,153,.4); border:none; }
+  @keyframes tapPulse { 0%,100%{transform:scale(1);box-shadow:0 0 60px rgba(52,211,153,.35)} 50%{transform:scale(1.09);box-shadow:0 0 100px rgba(52,211,153,.65)} }
+  .tap-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:700; }
+  .tap-sub { font-size:14px; color:var(--muted); text-align:center; max-width:260px; line-height:1.7; }
   @media(max-width:768px){ .sidebar{display:none} .room-body{height:calc(100vh - 65px)} .player-area{padding:24px 20px} .play-btn{width:56px;height:56px;font-size:18px} }
   @media(max-width:520px){ .room-header{padding:14px 16px} .code-box{display:none} }
 </style>
@@ -253,6 +259,13 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- TAP TO SYNC OVERLAY (listeners only) -->
+<div class="tap-overlay hidden" id="tap-overlay">
+  <button class="tap-pulse" onclick="unlockAudio()">🎧</button>
+  <div class="tap-title">Tap to Sync</div>
+  <div class="tap-sub">Your browser requires a tap before playing audio. Tap to join the stream.</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -362,7 +375,11 @@ function enterRoom() {
   document.getElementById('btn-prev').style.opacity    = isHost ? '1' : '0.35';
   document.getElementById('btn-next').style.opacity    = isHost ? '1' : '0.35';
   document.getElementById('prog-track').style.cursor   = isHost ? 'pointer' : 'default';
-  if (!isHost) document.getElementById('prog-track').onclick = null;
+  if (!isHost) {
+    document.getElementById('prog-track').onclick = null;
+    // Show tap-to-sync overlay so mobile browser unlocks audio
+    document.getElementById('tap-overlay').classList.remove('hidden');
+  }
   setBadge('connecting');
   openChannel();
 }
@@ -444,8 +461,27 @@ function broadcastUsers() {
   roomChannel.send({ type:'broadcast', event:'users', payload:{ users } });
 }
 
+// ── UNLOCK AUDIO (listeners — mobile autoplay policy) ──────────
+let pendingState = null;
+function unlockAudio() {
+  // Play a silent buffer to unlock audio context on mobile
+  audioEl.play().catch(()=>{});
+  audioEl.pause();
+  document.getElementById('tap-overlay').classList.add('hidden');
+  toast('✓ Audio unlocked — syncing…', 'success');
+  // If host was already playing before we tapped, apply it now
+  if (pendingState) { applyState(pendingState); pendingState = null; }
+}
+
 // ── APPLY STATE (listeners only) ───────────────────────────────
 function applyState(state) {
+  // If listener hasn't tapped yet, queue the state for when they do
+  if (!document.getElementById('tap-overlay').classList.contains('hidden')) {
+    pendingState = state;
+    if (state.trackName) document.getElementById('track-title').textContent = state.trackName;
+    document.getElementById('track-sub').textContent = '🎵 Host is playing — tap to sync';
+    return;
+  }
   if (state.trackName) {
     document.getElementById('track-title').textContent = state.trackName;
     document.getElementById('track-sub').textContent   = 'From host';
