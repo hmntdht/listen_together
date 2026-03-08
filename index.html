@@ -293,8 +293,8 @@ label{display:block;font-size:12px;font-family:'Syne',sans-serif;font-weight:600
 
 const SB_URL     = 'https://hspoajmdbuazdlhiifbj.supabase.co';
 const SB_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzcG9ham1kYnVhemRsaGlpZmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzY1NDQsImV4cCI6MjA4ODQ1MjU0NH0.FwHGr-DitLtRvjjbMWrevNXh8w9h5sytI5nuR1EYQlg';
-const CHUNK_SIZE = 48 * 1024; // 48 KB per message
-const CHUNK_GAP  = 30;        // ms between chunks
+const CHUNK_SIZE = 12 * 1024; // 12 KB raw → ~16 KB base64, safely under 32KB Supabase limit
+const CHUNK_GAP  = 50;        // ms between chunks
 
 let sb, ch;
 let myId      = Math.random().toString(36).substr(2,10);
@@ -397,9 +397,22 @@ function openChannel(){
 
   ch.on('broadcast',{event:'state'},  ({payload})=>{ lastState=payload; if(!isHost) applyState(payload); });
   ch.on('broadcast',{event:'queue'},  ({payload})=>{ mergeQueue(payload); });
-  ch.on('broadcast',{event:'chunk'},  ({payload})=>{ if(payload.fromId!==myId) recvChunk(payload); });
+  ch.on('broadcast',{event:'chunk'},  ({payload})=>{ recvChunk(payload); });
   ch.on('broadcast',{event:'done'},   ({payload})=>{ if(payload.trackId===rx.trackId) finalizeRx(payload); });
-  ch.on('broadcast',{event:'join'},   ({payload})=>{ users[payload.id]={name:payload.name,role:'listener'}; renderUsers(); if(isHost){ broadcastUsers(); broadcastState(isPlaying,audioEl.currentTime||0); broadcastQueueMeta(); } });
+  ch.on('broadcast',{event:'restream'},({payload})=>{ if(isHost) streamFile(payload.trackId); });
+  ch.on('broadcast',{event:'join'},   ({payload})=>{
+    users[payload.id]={name:payload.name,role:'listener'};
+    renderUsers();
+    if(isHost){
+      broadcastUsers();
+      broadcastState(isPlaying,audioEl.currentTime||0);
+      broadcastQueueMeta();
+      // Re-stream current track so new listener gets the audio
+      if(qIdx>=0 && queue[qIdx]?.data){
+        setTimeout(()=>streamFile(queue[qIdx].id), 500);
+      }
+    }
+  });
   ch.on('broadcast',{event:'leave'},  ({payload})=>{ delete users[payload.id]; renderUsers(); });
   ch.on('broadcast',{event:'users'},  ({payload})=>{ Object.assign(users,payload.u); renderUsers(); });
 
@@ -464,7 +477,9 @@ function bufToB64(buf){
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 // ── RECEIVE CHUNKS ─────────────────────────────────────────────
-function recvChunk({trackId,i,n,b64,mime}){
+function recvChunk({trackId,i,n,b64,mime,fromId}){
+  if(fromId===myId) return; // ignore own broadcast echo
+  console.log(`[RX] chunk ${i+1}/${n} for ${trackId}`);
   if(trackId!==rx.trackId){
     rx={trackId,chunks:new Array(n),total:n,received:0,mime};
     document.getElementById('rx-progress').style.display='block';
@@ -478,7 +493,9 @@ function recvChunk({trackId,i,n,b64,mime}){
 }
 
 function finalizeRx({trackId,mime}){
+  console.log(`[RX] finalizing ${trackId}, chunks:${rx.received}/${rx.total}`);
   const totalBytes=rx.chunks.reduce((s,c)=>s+(c?.byteLength||0),0);
+  console.log(`[RX] total bytes assembled: ${totalBytes}`);
   const out=new Uint8Array(totalBytes);
   let off=0; for(const c of rx.chunks){ if(c){out.set(c,off);off+=c.byteLength;} }
   const blob=new Blob([out],{type:mime||'audio/mpeg'});
@@ -490,15 +507,26 @@ function finalizeRx({trackId,mime}){
   syncMsg('Track ready ✓'); renderQueue();
   // If this is the current track, load it
   if(queue[qIdx]?.id===trackId){
+    console.log('[RX] loading audio into player');
     audioEl.src=url; audioEl.load();
     document.getElementById('playbtn').disabled=false;
+    document.getElementById('tsub').textContent=`Added by ${queue[qIdx]?.addedBy||'host'}`;
     // If host was playing, jump to correct position and play
     if(lastState&&lastState.isPlaying){
       const elapsed=(Date.now()-lastState.lastUpdated)/1000;
-      const target=lastState.pos+elapsed;
-      audioEl.addEventListener('canplay',()=>{
+      const target=Math.max(0,lastState.pos+elapsed);
+      console.log(`[RX] auto-playing at position ${target.toFixed(1)}s`);
+      audioEl.addEventListener('loadedmetadata',()=>{
         audioEl.currentTime=Math.min(target,audioEl.duration||9999);
-        audioEl.play().catch(()=>{});
+        const playPromise=audioEl.play();
+        if(playPromise){
+          playPromise.then(()=>{ isPlaying=true; updatePlayBtn(); syncMsg('Synced with host ✓'); })
+            .catch(err=>{
+              console.warn('[RX] autoplay blocked:',err.message);
+              // Show tap overlay as fallback
+              document.getElementById('tapover').classList.remove('hidden');
+            });
+        }
       },{once:true});
     }
   }
@@ -631,10 +659,22 @@ function updatePlayBtn(){ document.getElementById('playbtn').textContent=isPlayi
 // ── UNLOCK AUDIO (mobile tap) ─────────────────────────────────
 function unlockAudio(){
   document.getElementById('tapover').classList.add('hidden');
-  // Prime the audio context
-  const ctx=new(window.AudioContext||window.webkitAudioContext)();
-  ctx.resume(); ctx.close();
-  toast('✓ Audio ready — waiting for track to stream…','s');
+  // Resume AudioContext to unblock autoplay policy
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    ctx.resume().then(()=>ctx.close());
+  } catch(e){}
+  // If we have audio loaded and host is playing, start now
+  if(audioEl.src && audioEl.src!==window.location.href && lastState?.isPlaying){
+    const elapsed=(Date.now()-lastState.lastUpdated)/1000;
+    const target=Math.max(0,lastState.pos+elapsed);
+    audioEl.currentTime=Math.min(target,audioEl.duration||9999);
+    audioEl.play()
+      .then(()=>{ isPlaying=true; updatePlayBtn(); syncMsg('Synced ✓'); })
+      .catch(e=>console.warn('play after unlock failed:',e));
+  } else {
+    toast('✓ Audio ready — waiting for track…','s');
+  }
 }
 
 // ── RENDER ────────────────────────────────────────────────────
