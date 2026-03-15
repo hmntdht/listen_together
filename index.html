@@ -532,7 +532,7 @@ function finalizeRx({trackId,mime}){
   }
 }
 
-// ── MERGE QUEUE META (received by listeners) ───────────────────
+// ── MERGE QUEUE META ───────────────────
 function mergeQueue({items,qIdx:newIdx}){
   items.forEach(item=>{
     if(!queue.find(q=>q.id===item.id)) queue.push({...item,data:null,localUrl:null});
@@ -549,7 +549,7 @@ function mergeQueue({items,qIdx:newIdx}){
   renderQueue();
 }
 
-// ── ADD TO QUEUE (anyone can call this) ───────────────────────
+// ── ADD TO QUEUE (anyone can call this)
 function addToQueue(files){
   const af=Array.from(files).filter(f=>f.type.startsWith('audio/')||/\.(mp3|wav|ogg|flac|aac|m4a)$/i.test(f.name));
   if(!af.length){toast('No audio files','e');return;}
